@@ -13,12 +13,16 @@ import CreateStory from "@/pages/CreateStory";
 import EditStory from "@/pages/EditStory";
 import SavedStories from "@/pages/SavedStories";
 import Profile from "@/pages/Profile";
+import DownloadApp from "@/pages/DownloadApp";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
   return (
     <Switch>
+      {/* Public routes - accessible to everyone */}
+      <Route path="/download" component={DownloadApp} />
+      
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (

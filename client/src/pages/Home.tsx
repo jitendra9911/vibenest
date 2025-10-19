@@ -5,7 +5,7 @@ import { StoryCard } from "@/components/StoryCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Plus, User, Search, X, Bookmark } from "lucide-react";
+import { BookOpen, Plus, User, Search, X, Bookmark, Download } from "lucide-react";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useEffect, useState } from "react";
@@ -180,6 +180,18 @@ export default function Home() {
 
           {/* Main Navigation Icons */}
           <div className="flex items-center justify-around py-3">
+            <Link href="/download">
+              <Button
+                variant="ghost"
+                size="icon"
+                data-testid="button-download-app"
+                className="h-12 w-12 flex flex-col items-center justify-center gap-1 hover-elevate active-elevate-2"
+              >
+                <Download className="h-5 w-5" />
+                <span className="text-xs">Get App</span>
+              </Button>
+            </Link>
+
             <Button
               variant="ghost"
               size="icon"

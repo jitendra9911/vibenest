@@ -1,10 +1,12 @@
-# Story Social
+# VibeNest (formerly Story Social)
 
 ## Overview
 
-Story Social is a mobile-first story-sharing platform inspired by Instagram Reels, TikTok, and Snapchat. The application enables users to create and consume stories in an immersive, full-screen reel-style feed. Stories can be categorized as fictional, real-life experiences, or a blend of both, with gesture-based navigation optimized for quick consumption.
+VibeNest is a mobile-first story-sharing platform inspired by Instagram Reels, TikTok, and Snapchat. The application enables users to create and consume stories in an immersive, full-screen reel-style feed. Stories can be categorized as fictional, real-life experiences, or a blend of both, with gesture-based navigation optimized for quick consumption.
 
 The platform emphasizes a clean, minimal UI with smooth transitions and a modern design system built around a vibrant purple brand color. The application supports both light and dark modes, with dark mode as the primary theme.
+
+**Cross-Platform:** VibeNest is available as a web application and can be built as a native Android app using Capacitor.
 
 ## User Preferences
 
