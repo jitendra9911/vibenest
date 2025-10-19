@@ -130,6 +130,27 @@ export function StoryCard({ story }: StoryCardProps) {
     enabled: showComments,
   });
 
+  // Fetch follow status
+  const { data: followData } = useQuery<{ isFollowing: boolean }>({
+    queryKey: ["/api/users", story.userId, "follow-status"],
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${story.userId}/follow-status`);
+      if (!response.ok) throw new Error("Failed to fetch follow status");
+      return response.json();
+    },
+    enabled: !isOwnStory,
+  });
+
+  // Fetch bookmark status
+  const { data: bookmarkData } = useQuery<{ isBookmarked: boolean }>({
+    queryKey: ["/api/stories", story.id, "bookmark-status"],
+    queryFn: async () => {
+      const response = await fetch(`/api/stories/${story.id}/bookmark-status`);
+      if (!response.ok) throw new Error("Failed to fetch bookmark status");
+      return response.json();
+    },
+  });
+
   // Like mutation
   const likeMutation = useMutation({
     mutationFn: async () => {
@@ -173,17 +194,6 @@ export function StoryCard({ story }: StoryCardProps) {
     },
   });
 
-  // Fetch follow status
-  const { data: followData } = useQuery<{ isFollowing: boolean; followerCount: number; followingCount: number }>({
-    queryKey: ["/api/users", story.userId, "follow-status"],
-    queryFn: async () => {
-      const response = await fetch(`/api/users/${story.userId}/follow-status`);
-      if (!response.ok) throw new Error("Failed to fetch follow status");
-      return response.json();
-    },
-    enabled: !isOwnStory,
-  });
-
   // Follow mutation
   const followMutation = useMutation({
     mutationFn: async () => {
@@ -195,13 +205,6 @@ export function StoryCard({ story }: StoryCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users", story.userId, "follow-status"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stories/personalized"] });
-      toast({
-        title: followData?.isFollowing ? "Unfollowed" : "Following",
-        description: followData?.isFollowing 
-          ? `You unfollowed ${displayName}` 
-          : `You are now following ${displayName}`,
-      });
     },
     onError: (error: Error) => {
       toast({
@@ -209,24 +212,6 @@ export function StoryCard({ story }: StoryCardProps) {
         description: error.message || "Failed to update follow status",
         variant: "destructive",
       });
-    },
-  });
-
-  const handleLike = () => {
-    likeMutation.mutate();
-  };
-
-  const handleFollow = () => {
-    followMutation.mutate();
-  };
-
-  // Fetch bookmark status
-  const { data: bookmarkData } = useQuery<{ isBookmarked: boolean }>({
-    queryKey: ["/api/stories", story.id, "bookmark-status"],
-    queryFn: async () => {
-      const response = await fetch(`/api/stories/${story.id}/bookmark-status`);
-      if (!response.ok) throw new Error("Failed to fetch bookmark status");
-      return response.json();
     },
   });
 
@@ -243,10 +228,8 @@ export function StoryCard({ story }: StoryCardProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/stories", story.id, "bookmark-status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/bookmarks"] });
       toast({
-        title: bookmarkData?.isBookmarked ? "Bookmark removed" : "Story bookmarked",
-        description: bookmarkData?.isBookmarked 
-          ? "Story removed from your saved collection" 
-          : "Story saved to your bookmarks",
+        title: bookmarkData?.isBookmarked ? "Removed from saved" : "Saved",
+        description: bookmarkData?.isBookmarked ? "Story removed from your saved collection" : "Story added to your saved collection",
       });
     },
     onError: (error: Error) => {
@@ -257,6 +240,16 @@ export function StoryCard({ story }: StoryCardProps) {
       });
     },
   });
+
+  const handleLike = () => {
+    if (!likesLoading) {
+      likeMutation.mutate();
+    }
+  };
+
+  const handleFollow = () => {
+    followMutation.mutate();
+  };
 
   const handleBookmark = () => {
     bookmarkMutation.mutate();
@@ -291,7 +284,7 @@ export function StoryCard({ story }: StoryCardProps) {
 
   return (
     <div 
-      className="relative h-screen w-full snap-start snap-always flex items-center justify-center bg-background p-4"
+      className="relative h-screen w-full snap-start snap-always flex items-center justify-center bg-background"
       data-testid={`story-card-${story.id}`}
     >
       {/* Background Music Player */}
@@ -301,13 +294,13 @@ export function StoryCard({ story }: StoryCardProps) {
         </audio>
       )}
 
-      {/* Story Content Container - Paper-like design */}
-      <div className="relative w-full max-w-2xl h-full flex flex-col">
-        {/* Cream Paper Background with Story Content */}
-        <div className="flex-1 bg-card rounded-lg shadow-xl overflow-hidden mb-4 border-2 border-card-border">
+      {/* Story Content Container - Instagram Reels Style */}
+      <div className="relative w-full max-w-2xl h-full">
+        {/* Main Story Content - Cream Paper Background */}
+        <div className="relative h-full bg-card rounded-lg shadow-xl overflow-hidden border-2 border-card-border">
           {/* Paper texture overlay */}
           <div 
-            className="absolute inset-0 opacity-[0.03] pointer-events-none"
+            className="absolute inset-0 opacity-[0.03] pointer-events-none z-10"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
             }}
@@ -343,72 +336,53 @@ export function StoryCard({ story }: StoryCardProps) {
 
             {/* Story Content */}
             <div 
-              className="text-lg text-card-foreground/90 leading-relaxed whitespace-pre-wrap font-serif"
+              className="text-lg text-card-foreground/90 leading-relaxed whitespace-pre-wrap font-serif pb-32"
               data-testid={`story-content-${story.id}`}
               style={{ textIndent: "2rem" }}
             >
               {story.content}
             </div>
-
-            {/* Timestamp */}
-            <p className="text-xs text-muted-foreground mt-8 text-right" data-testid={`story-time-${story.id}`}>
-              {formatDistanceToNow(new Date(story.createdAt!), { addSuffix: true })}
-            </p>
           </div>
-        </div>
 
-        {/* Bottom Section - Author & Actions */}
-        <div className="bg-background/95 backdrop-blur-sm rounded-lg p-4 space-y-4">
-          {/* Author Profile Section */}
-          <div className="flex items-center gap-3">
-            <Avatar className="h-12 w-12 ring-2 ring-primary/30" data-testid={`avatar-${story.userId}`}>
+          {/* Bottom Left - Author Profile (Instagram Reels Style) */}
+          <div className="absolute bottom-4 left-4 z-20 flex items-center gap-3 bg-background/80 backdrop-blur-md rounded-full px-4 py-2 shadow-lg">
+            <Avatar className="h-10 w-10 ring-2 ring-background" data-testid={`avatar-${story.userId}`}>
               <AvatarImage 
                 src={story.user.profileImageUrl || undefined} 
                 alt={displayName}
                 className="object-cover"
               />
-              <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+              <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-foreground truncate" data-testid={`author-name-${story.id}`}>
+            <div className="flex items-center gap-3">
+              <p className="font-semibold text-foreground text-sm" data-testid={`author-name-${story.id}`}>
                 {displayName}
               </p>
-              {story.user.bio && (
-                <p className="text-xs text-muted-foreground truncate">
-                  {story.user.bio}
-                </p>
+              {!isOwnStory && (
+                <Button
+                  variant={followData?.isFollowing ? "outline" : "default"}
+                  size="sm"
+                  onClick={handleFollow}
+                  disabled={followMutation.isPending}
+                  className="h-7 px-3 text-xs hover-elevate active-elevate-2"
+                  data-testid={`button-follow-${story.userId}`}
+                >
+                  {followMutation.isPending ? (
+                    <div className="h-3 w-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                  ) : followData?.isFollowing ? (
+                    "Following"
+                  ) : (
+                    "Follow"
+                  )}
+                </Button>
               )}
             </div>
-            {!isOwnStory && (
-              <Button
-                variant={followData?.isFollowing ? "outline" : "default"}
-                size="sm"
-                onClick={handleFollow}
-                disabled={followMutation.isPending}
-                className="gap-1.5 hover-elevate active-elevate-2"
-                data-testid={`button-follow-${story.userId}`}
-              >
-                {followMutation.isPending ? (
-                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                ) : followData?.isFollowing ? (
-                  <>
-                    <UserMinus className="h-4 w-4" />
-                    Following
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="h-4 w-4" />
-                    Follow
-                  </>
-                )}
-              </Button>
-            )}
           </div>
 
-          {/* Action Buttons Row */}
-          <div className="flex items-center justify-around gap-2 pt-2 border-t border-border">
+          {/* Right Side - Vertical Action Buttons (Instagram Reels Style) */}
+          <div className="absolute right-4 bottom-20 z-20 flex flex-col items-center gap-6">
             {/* Like Button */}
             <div className="flex flex-col items-center gap-1">
               <Button
@@ -416,14 +390,14 @@ export function StoryCard({ story }: StoryCardProps) {
                 size="icon"
                 onClick={handleLike}
                 disabled={likesLoading || likeMutation.isPending}
-                className="h-10 w-10 hover-elevate active-elevate-2"
+                className="h-12 w-12 rounded-full bg-background/80 backdrop-blur-md hover:bg-background hover-elevate active-elevate-2 shadow-lg"
                 data-testid={`button-like-${story.id}`}
               >
                 <Heart 
-                  className={`h-5 w-5 ${likeData?.isLiked ? "fill-red-500 text-red-500" : ""}`}
+                  className={`h-6 w-6 ${likeData?.isLiked ? "fill-red-500 text-red-500" : ""}`}
                 />
               </Button>
-              <span className="text-xs font-medium text-muted-foreground" data-testid={`like-count-${story.id}`}>
+              <span className="text-xs font-bold text-foreground bg-background/80 backdrop-blur-md px-2 py-0.5 rounded-full shadow-lg" data-testid={`like-count-${story.id}`}>
                 {likeData?.count || 0}
               </span>
             </div>
@@ -435,10 +409,10 @@ export function StoryCard({ story }: StoryCardProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 hover-elevate active-elevate-2"
+                    className="h-12 w-12 rounded-full bg-background/80 backdrop-blur-md hover:bg-background hover-elevate active-elevate-2 shadow-lg"
                     data-testid={`button-comments-${story.id}`}
                   >
-                    <MessageCircle className="h-5 w-5" />
+                    <MessageCircle className="h-6 w-6" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="bottom" className="h-[80vh]">
@@ -510,7 +484,7 @@ export function StoryCard({ story }: StoryCardProps) {
                   </div>
                 </SheetContent>
               </Sheet>
-              <span className="text-xs font-medium text-muted-foreground" data-testid={`comment-count-${story.id}`}>
+              <span className="text-xs font-bold text-foreground bg-background/80 backdrop-blur-md px-2 py-0.5 rounded-full shadow-lg" data-testid={`comment-count-${story.id}`}>
                 {comments.length}
               </span>
             </div>
@@ -522,10 +496,10 @@ export function StoryCard({ story }: StoryCardProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 hover-elevate active-elevate-2"
+                    className="h-12 w-12 rounded-full bg-background/80 backdrop-blur-md hover:bg-background hover-elevate active-elevate-2 shadow-lg"
                     data-testid={`button-share-${story.id}`}
                   >
-                    <Share2 className="h-5 w-5" />
+                    <Share2 className="h-6 w-6" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -552,11 +526,11 @@ export function StoryCard({ story }: StoryCardProps) {
                 size="icon"
                 onClick={handleBookmark}
                 disabled={bookmarkMutation.isPending}
-                className="h-10 w-10 hover-elevate active-elevate-2"
+                className="h-12 w-12 rounded-full bg-background/80 backdrop-blur-md hover:bg-background hover-elevate active-elevate-2 shadow-lg"
                 data-testid={`button-bookmark-${story.id}`}
               >
                 <Bookmark 
-                  className={`h-5 w-5 ${bookmarkData?.isBookmarked ? "fill-primary text-primary" : ""}`}
+                  className={`h-6 w-6 ${bookmarkData?.isBookmarked ? "fill-primary text-primary" : ""}`}
                 />
               </Button>
             </div>
@@ -568,17 +542,24 @@ export function StoryCard({ story }: StoryCardProps) {
                   variant="ghost"
                   size="icon"
                   onClick={toggleMusic}
-                  className="h-10 w-10 hover-elevate active-elevate-2"
+                  className="h-12 w-12 rounded-full bg-background/80 backdrop-blur-md hover:bg-background hover-elevate active-elevate-2 shadow-lg"
                   data-testid={`button-music-${story.id}`}
                 >
                   {isMusicPlaying ? (
-                    <Volume2 className="h-5 w-5 text-primary" />
+                    <Volume2 className="h-6 w-6 text-primary" />
                   ) : (
-                    <VolumeX className="h-5 w-5" />
+                    <VolumeX className="h-6 w-6" />
                   )}
                 </Button>
               </div>
             )}
+          </div>
+
+          {/* Timestamp - Top Right */}
+          <div className="absolute top-4 right-4 z-20">
+            <p className="text-xs text-foreground bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg" data-testid={`story-time-${story.id}`}>
+              {formatDistanceToNow(new Date(story.createdAt!), { addSuffix: true })}
+            </p>
           </div>
         </div>
       </div>
