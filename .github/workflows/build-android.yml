@@ -30,21 +30,28 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    - name: Patch Capacitor Java version to 17
-      run: |
-        sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' node_modules/@capacitor/android/capacitor/build.gradle
-        echo "Patched Capacitor to use Java 17"
-      
     - name: Build web app
       run: npm run build
       
     - name: Sync Capacitor
       run: npx cap sync android
       
+    - name: Patch ALL Java 21 to Java 17
+      run: |
+        echo "Patching all Java version references..."
+        find android -name "*.gradle" -type f -exec sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' {} \;
+        find node_modules/@capacitor/android -name "*.gradle" -type f -exec sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' {} \;
+        echo "Patching complete!"
+        
     - name: Verify Java 17 in all gradle files
       run: |
         echo "Checking for any remaining Java 21 references..."
-        ! grep -r "VERSION_21" android/ node_modules/@capacitor/android/capacitor/build.gradle || (echo "Found Java 21 references!" && exit 1)
+        if grep -r "VERSION_21" android/ node_modules/@capacitor/android/; then
+          echo "ERROR: Found Java 21 references!"
+          exit 1
+        else
+          echo "SUCCESS: All Java versions set to 17"
+        fi
       
     - name: Make gradlew executable
       run: chmod +x android/gradlew
