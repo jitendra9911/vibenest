@@ -10,6 +10,7 @@ import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
 import CreateStory from "@/pages/CreateStory";
 import EditStory from "@/pages/EditStory";
+import SavedStories from "@/pages/SavedStories";
 import Profile from "@/pages/Profile";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
           <Route path="/" component={Home} />
           <Route path="/create" component={CreateStory} />
           <Route path="/edit/:id" component={EditStory} />
+          <Route path="/saved" component={SavedStories} />
           <Route path="/profile" component={Profile} />
         </>
       )}

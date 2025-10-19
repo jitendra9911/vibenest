@@ -77,12 +77,17 @@ Preferred communication style: Simple, everyday language.
 **Schema Design:**
 - `users` table: OIDC user data (id, email, names, profile image, bio)
 - `stories` table: user-generated content (id, userId, title, content, category, timestamp)
+- `likes` table: story likes tracking (userId, storyId with composite unique constraint)
+- `comments` table: story comments with author information
+- `follows` table: user following relationships (followerId, followingId)
+- `bookmarks` table: saved stories for later reading (userId, storyId with cascade delete)
 - `sessions` table: encrypted session data with expiration indexing
 - Foreign key cascade on user deletion to maintain referential integrity
 - UUID primary keys generated via PostgreSQL's `gen_random_uuid()`
 
 **Relations:**
-- One-to-many: Users to Stories
+- One-to-many: Users to Stories, Users to Comments, Users to Bookmarks
+- Many-to-many: Users to Likes (through likes table), Users to Follows (through follows table)
 - Stories include author data via Drizzle relations for efficient joins
 
 ### External Dependencies

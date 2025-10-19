@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { BookOpen, CheckCircle2, Sparkles, Heart, MessageCircle, Share2, ExternalLink, UserPlus, UserMinus } from "lucide-react";
+import { BookOpen, CheckCircle2, Sparkles, Heart, MessageCircle, Share2, ExternalLink, UserPlus, UserMinus, Bookmark } from "lucide-react";
 import { SiX, SiFacebook } from "react-icons/si";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
@@ -166,6 +166,48 @@ export function StoryCard({ story }: StoryCardProps) {
 
   const handleFollow = () => {
     followMutation.mutate();
+  };
+
+  // Fetch bookmark status
+  const { data: bookmarkData } = useQuery<{ isBookmarked: boolean }>({
+    queryKey: ["/api/stories", story.id, "bookmark-status"],
+    queryFn: async () => {
+      const response = await fetch(`/api/stories/${story.id}/bookmark-status`);
+      if (!response.ok) throw new Error("Failed to fetch bookmark status");
+      return response.json();
+    },
+  });
+
+  // Bookmark mutation
+  const bookmarkMutation = useMutation({
+    mutationFn: async () => {
+      if (bookmarkData?.isBookmarked) {
+        return await apiRequest("DELETE", `/api/stories/${story.id}/bookmark`);
+      } else {
+        return await apiRequest("POST", `/api/stories/${story.id}/bookmark`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stories", story.id, "bookmark-status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/bookmarks"] });
+      toast({
+        title: bookmarkData?.isBookmarked ? "Bookmark removed" : "Story bookmarked",
+        description: bookmarkData?.isBookmarked 
+          ? "Story removed from your saved collection" 
+          : "Story saved to your bookmarks",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update bookmark",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleBookmark = () => {
+    bookmarkMutation.mutate();
   };
 
   const handleComment = () => {
@@ -405,21 +447,33 @@ export function StoryCard({ story }: StoryCardProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
+          {/* Bookmark Button */}
+          <div className="flex flex-col items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBookmark}
+              disabled={bookmarkMutation.isPending}
+              className="h-12 w-12 rounded-full bg-background/80 backdrop-blur-sm hover-elevate active-elevate-2"
+              data-testid={`button-bookmark-${story.id}`}
+            >
+              <Bookmark 
+                className={`h-6 w-6 ${bookmarkData?.isBookmarked ? "fill-primary text-primary" : ""}`}
+              />
+            </Button>
+          </div>
         </div>
 
-        {/* Category Badge - Bottom Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 z-10 p-6 bg-gradient-to-t from-background/90 via-background/60 to-transparent backdrop-blur-sm">
-          <div className="flex justify-center">
-            <Badge 
-              className={`${config.colorClass} px-4 py-2 text-sm font-medium gap-2 shadow-lg`}
-              data-testid={`category-badge-${story.id}`}
-            >
-              <Icon className="h-4 w-4" />
-              {config.label}
-            </Badge>
-          </div>
+        {/* Category Badge - Bottom */}
+        <div className="absolute bottom-4 left-4 z-10">
+          <Badge className={`${config.colorClass} gap-2 px-3 py-1.5`} data-testid={`category-badge-${story.id}`}>
+            <Icon className="h-4 w-4" />
+            {config.label}
+          </Badge>
         </div>
       </div>
     </div>
   );
 }
+

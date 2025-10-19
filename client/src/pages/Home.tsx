@@ -5,7 +5,7 @@ import { StoryCard } from "@/components/StoryCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Plus, User, Search, X } from "lucide-react";
+import { BookOpen, Plus, User, Search, X, Bookmark } from "lucide-react";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useEffect, useState } from "react";
@@ -24,17 +24,6 @@ export default function Home() {
     queryKey: useSearchEndpoint 
       ? ["/api/stories/search", { q: searchQuery, category: category !== "all" ? category : undefined }]
       : ["/api/stories/personalized"],
-    queryFn: async () => {
-      if (useSearchEndpoint) {
-        const params = new URLSearchParams();
-        if (searchQuery.trim()) params.append('q', searchQuery);
-        if (category !== 'all') params.append('category', category);
-        const response = await fetch(`/api/stories/search?${params.toString()}`);
-        if (!response.ok) throw new Error("Failed to search stories");
-        return response.json();
-      }
-      return undefined;
-    },
     enabled: !!user,
   });
 
@@ -99,6 +88,16 @@ export default function Home() {
               >
                 {showSearch ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
               </Button>
+              <Link href="/saved">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  data-testid="button-saved-stories"
+                  className="hover-elevate active-elevate-2"
+                >
+                  <Bookmark className="h-5 w-5" />
+                </Button>
+              </Link>
               <ThemeToggle />
               <Link href="/create">
                 <Button 

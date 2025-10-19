@@ -4,6 +4,7 @@ import {
   likes,
   comments,
   follows,
+  bookmarks,
   type User,
   type UpsertUser,
   type Story,
@@ -15,6 +16,7 @@ import {
   type InsertComment,
   type CommentWithAuthor,
   type Follow,
+  type Bookmark,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count, or, inArray, ilike } from "drizzle-orm";
@@ -52,6 +54,12 @@ export interface IStorage {
   getFollowerCount(userId: string): Promise<number>;
   getFollowingCount(userId: string): Promise<number>;
   getPersonalizedStories(userId: string): Promise<StoryWithAuthor[]>;
+  
+  // Bookmark operations
+  bookmarkStory(userId: string, storyId: string): Promise<Bookmark>;
+  unbookmarkStory(userId: string, storyId: string): Promise<void>;
+  isStoryBookmarked(userId: string, storyId: string): Promise<boolean>;
+  getBookmarkedStories(userId: string): Promise<StoryWithAuthor[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -372,6 +380,56 @@ export class DatabaseStorage implements IStorage {
     });
     
     return sorted;
+  }
+
+  // Bookmark operations
+  async bookmarkStory(userId: string, storyId: string): Promise<Bookmark> {
+    const [bookmark] = await db
+      .insert(bookmarks)
+      .values({ userId, storyId })
+      .returning();
+    return bookmark;
+  }
+
+  async unbookmarkStory(userId: string, storyId: string): Promise<void> {
+    await db
+      .delete(bookmarks)
+      .where(and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId)));
+  }
+
+  async isStoryBookmarked(userId: string, storyId: string): Promise<boolean> {
+    const [bookmark] = await db
+      .select()
+      .from(bookmarks)
+      .where(and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId)))
+      .limit(1);
+    return !!bookmark;
+  }
+
+  async getBookmarkedStories(userId: string): Promise<StoryWithAuthor[]> {
+    const result = await db
+      .select({
+        id: stories.id,
+        userId: stories.userId,
+        title: stories.title,
+        content: stories.content,
+        category: stories.category,
+        createdAt: stories.createdAt,
+        user: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          bio: users.bio,
+        },
+      })
+      .from(bookmarks)
+      .innerJoin(stories, eq(bookmarks.storyId, stories.id))
+      .innerJoin(users, eq(stories.userId, users.id))
+      .where(eq(bookmarks.userId, userId))
+      .orderBy(desc(bookmarks.createdAt));
+    
+    return result;
   }
 }
 

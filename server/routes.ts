@@ -93,6 +93,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/stories/personalized', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const stories = await storage.getPersonalizedStories(userId);
+      res.json(stories);
+    } catch (error) {
+      console.error("Error fetching personalized stories:", error);
+      res.status(500).json({ message: "Failed to fetch personalized stories" });
+    }
+  });
+
   app.get('/api/stories/:id', isAuthenticated, async (req: any, res) => {
     try {
       const storyId = req.params.id;
@@ -284,14 +295,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/stories/personalized', isAuthenticated, async (req: any, res) => {
+  // Bookmark routes
+  app.post('/api/stories/:id/bookmark', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const stories = await storage.getPersonalizedStories(userId);
+      const storyId = req.params.id;
+      
+      // Check if already bookmarked
+      const isBookmarked = await storage.isStoryBookmarked(userId, storyId);
+      if (isBookmarked) {
+        return res.status(400).json({ message: "Story already bookmarked" });
+      }
+      
+      const bookmark = await storage.bookmarkStory(userId, storyId);
+      res.status(201).json(bookmark);
+    } catch (error) {
+      console.error("Error bookmarking story:", error);
+      res.status(500).json({ message: "Failed to bookmark story" });
+    }
+  });
+
+  app.delete('/api/stories/:id/bookmark', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const storyId = req.params.id;
+      
+      await storage.unbookmarkStory(userId, storyId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error unbookmarking story:", error);
+      res.status(500).json({ message: "Failed to unbookmark story" });
+    }
+  });
+
+  app.get('/api/stories/:id/bookmark-status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const storyId = req.params.id;
+      
+      const isBookmarked = await storage.isStoryBookmarked(userId, storyId);
+      res.json({ isBookmarked });
+    } catch (error) {
+      console.error("Error fetching bookmark status:", error);
+      res.status(500).json({ message: "Failed to fetch bookmark status" });
+    }
+  });
+
+  app.get('/api/bookmarks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const stories = await storage.getBookmarkedStories(userId);
       res.json(stories);
     } catch (error) {
-      console.error("Error fetching personalized stories:", error);
-      res.status(500).json({ message: "Failed to fetch personalized stories" });
+      console.error("Error fetching bookmarked stories:", error);
+      res.status(500).json({ message: "Failed to fetch bookmarked stories" });
     }
   });
 

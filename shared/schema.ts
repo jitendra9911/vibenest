@@ -73,6 +73,16 @@ export const follows = pgTable("follows", {
   uniqueFollow: index("unique_follower_following").on(table.followerId, table.followingId),
 }));
 
+// Bookmarks table
+export const bookmarks = pgTable("bookmarks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  storyId: varchar("story_id").notNull().references(() => stories.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  uniqueUserStoryBookmark: index("unique_user_story_bookmark").on(table.userId, table.storyId),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   stories: many(stories),
@@ -80,6 +90,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   comments: many(comments),
   followers: many(follows, { relationName: "followers" }),
   following: many(follows, { relationName: "following" }),
+  bookmarks: many(bookmarks),
 }));
 
 export const storiesRelations = relations(stories, ({ one, many }) => ({
@@ -89,6 +100,7 @@ export const storiesRelations = relations(stories, ({ one, many }) => ({
   }),
   likes: many(likes),
   comments: many(comments),
+  bookmarks: many(bookmarks),
 }));
 
 export const likesRelations = relations(likes, ({ one }) => ({
@@ -123,6 +135,17 @@ export const followsRelations = relations(follows, ({ one }) => ({
     fields: [follows.followingId],
     references: [users.id],
     relationName: "following",
+  }),
+}));
+
+export const bookmarksRelations = relations(bookmarks, ({ one }) => ({
+  user: one(users, {
+    fields: [bookmarks.userId],
+    references: [users.id],
+  }),
+  story: one(stories, {
+    fields: [bookmarks.storyId],
+    references: [stories.id],
   }),
 }));
 
@@ -192,3 +215,6 @@ export type CommentWithAuthor = Comment & {
 
 // Follow schemas
 export type Follow = typeof follows.$inferSelect;
+
+// Bookmark schemas
+export type Bookmark = typeof bookmarks.$inferSelect;
