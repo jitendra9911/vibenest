@@ -65,65 +65,59 @@ export default function Home() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Top Navigation Bar - Mobile & Desktop */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
-                <BookOpen className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="font-display font-bold text-lg text-foreground hidden sm:inline">
-                Story Social
-              </span>
+      {/* Story Feed - Now full screen */}
+      <div 
+        className="flex-1 overflow-y-auto snap-y snap-mandatory scroll-smooth"
+        data-testid="story-feed"
+      >
+        {isLoading ? (
+          <div className="h-screen flex items-center justify-center">
+            <div className="text-center space-y-4">
+              <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+              <p className="text-muted-foreground">Loading stories...</p>
             </div>
-            
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowSearch(!showSearch)}
-                data-testid="button-toggle-search"
-                className="hover-elevate active-elevate-2"
-              >
-                {showSearch ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
-              </Button>
-              <Link href="/saved">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  data-testid="button-saved-stories"
-                  className="hover-elevate active-elevate-2"
-                >
-                  <Bookmark className="h-5 w-5" />
-                </Button>
-              </Link>
-              <ThemeToggle />
+          </div>
+        ) : !stories || stories.length === 0 ? (
+          <div className="h-screen flex items-center justify-center px-6">
+            <div className="text-center space-y-6 max-w-md">
+              <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center mx-auto">
+                <BookOpen className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="font-display font-bold text-2xl text-foreground">No Stories Yet</h2>
+                <p className="text-muted-foreground">
+                  Be the first to share a story with the community!
+                </p>
+              </div>
               <Link href="/create">
                 <Button 
-                  size="icon"
-                  data-testid="button-create-story"
-                  className="hover-elevate active-elevate-2"
+                  size="lg"
+                  data-testid="button-create-first-story"
+                  className="gap-2 hover-elevate active-elevate-2"
                 >
                   <Plus className="h-5 w-5" />
-                </Button>
-              </Link>
-              <Link href="/profile">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  data-testid="button-profile"
-                  className="hover-elevate active-elevate-2"
-                >
-                  <User className="h-5 w-5" />
+                  Create Your First Story
                 </Button>
               </Link>
             </div>
           </div>
+        ) : (
+          <>
+            {stories.map((story, index) => (
+              <div key={story.id} id={`story-${index}`}>
+                <StoryCard story={story} />
+              </div>
+            ))}
+          </>
+        )}
+      </div>
 
-          {/* Search & Filter Section */}
+      {/* Bottom Navigation Bar - Fixed */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border safe-area-inset-bottom">
+        <div className="max-w-7xl mx-auto px-4 pb-2">
+          {/* Search & Filter Section - Shows when search is toggled */}
           {showSearch && (
-            <div className="space-y-3">
+            <div className="py-3 space-y-3 border-b border-border">
               {/* Search Input */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -174,54 +168,57 @@ export default function Home() {
               </div>
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Story Feed */}
-      <div 
-        className="flex-1 overflow-y-auto snap-y snap-mandatory scroll-smooth pt-14"
-        data-testid="story-feed"
-      >
-        {isLoading ? (
-          <div className="h-screen flex items-center justify-center">
-            <div className="text-center space-y-4">
-              <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-              <p className="text-muted-foreground">Loading stories...</p>
-            </div>
+          {/* Main Navigation Icons */}
+          <div className="flex items-center justify-around py-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSearch(!showSearch)}
+              data-testid="button-toggle-search"
+              className="h-12 w-12 flex flex-col items-center justify-center gap-1 hover-elevate active-elevate-2"
+            >
+              {showSearch ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+              <span className="text-xs">Search</span>
+            </Button>
+
+            <Link href="/saved">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                data-testid="button-saved-stories"
+                className="h-12 w-12 flex flex-col items-center justify-center gap-1 hover-elevate active-elevate-2"
+              >
+                <Bookmark className="h-5 w-5" />
+                <span className="text-xs">Saved</span>
+              </Button>
+            </Link>
+
+            <Link href="/create">
+              <Button 
+                size="icon"
+                data-testid="button-create-story"
+                className="h-14 w-14 rounded-full hover-elevate active-elevate-2"
+              >
+                <Plus className="h-6 w-6" />
+              </Button>
+            </Link>
+
+            <ThemeToggle />
+
+            <Link href="/profile">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                data-testid="button-profile"
+                className="h-12 w-12 flex flex-col items-center justify-center gap-1 hover-elevate active-elevate-2"
+              >
+                <User className="h-5 w-5" />
+                <span className="text-xs">Profile</span>
+              </Button>
+            </Link>
           </div>
-        ) : !stories || stories.length === 0 ? (
-          <div className="h-screen flex items-center justify-center px-6">
-            <div className="text-center space-y-6 max-w-md">
-              <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center mx-auto">
-                <BookOpen className="h-12 w-12 text-muted-foreground" />
-              </div>
-              <div className="space-y-2">
-                <h2 className="font-display font-bold text-2xl text-foreground">No Stories Yet</h2>
-                <p className="text-muted-foreground">
-                  Be the first to share a story with the community!
-                </p>
-              </div>
-              <Link href="/create">
-                <Button 
-                  size="lg"
-                  data-testid="button-create-first-story"
-                  className="gap-2 hover-elevate active-elevate-2"
-                >
-                  <Plus className="h-5 w-5" />
-                  Create Your First Story
-                </Button>
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <>
-            {stories.map((story, index) => (
-              <div key={story.id} id={`story-${index}`}>
-                <StoryCard story={story} />
-              </div>
-            ))}
-          </>
-        )}
+        </div>
       </div>
     </div>
   );

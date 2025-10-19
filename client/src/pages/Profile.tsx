@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, LogOut, BookOpen, Edit2, Save, X, Trash2, Edit } from "lucide-react";
+import { Home, LogOut, BookOpen, Edit2, Save, X, Trash2, Edit, Plus, Search, User, Bookmark } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useState, useEffect } from "react";
@@ -145,27 +145,7 @@ export default function Profile() {
   const storyCount = userStories?.length || 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                data-testid="button-back"
-                className="hover-elevate active-elevate-2"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <h1 className="font-display font-bold text-xl text-foreground">Profile</h1>
-          </div>
-          <ThemeToggle />
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-background pb-24">
       {/* Profile Content */}
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         {/* Profile Card */}
@@ -379,6 +359,59 @@ export default function Profile() {
           Log Out
         </Button>
       </main>
+
+      {/* Bottom Navigation Bar - Fixed */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border safe-area-inset-bottom">
+        <div className="max-w-7xl mx-auto px-4 pb-2">
+          <div className="flex items-center justify-around py-3">
+            <Link href="/">
+              <Button
+                variant="ghost"
+                size="icon"
+                data-testid="button-home"
+                className="h-12 w-12 flex flex-col items-center justify-center gap-1 hover-elevate active-elevate-2"
+              >
+                <Home className="h-5 w-5" />
+                <span className="text-xs">Home</span>
+              </Button>
+            </Link>
+
+            <Link href="/saved">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                data-testid="button-saved-stories"
+                className="h-12 w-12 flex flex-col items-center justify-center gap-1 hover-elevate active-elevate-2"
+              >
+                <Bookmark className="h-5 w-5" />
+                <span className="text-xs">Saved</span>
+              </Button>
+            </Link>
+
+            <Link href="/create">
+              <Button 
+                size="icon"
+                data-testid="button-create-story"
+                className="h-14 w-14 rounded-full hover-elevate active-elevate-2"
+              >
+                <Plus className="h-6 w-6" />
+              </Button>
+            </Link>
+
+            <ThemeToggle />
+
+            <Button
+              variant="default"
+              size="icon"
+              data-testid="button-profile-active"
+              className="h-12 w-12 flex flex-col items-center justify-center gap-1"
+            >
+              <User className="h-5 w-5" />
+              <span className="text-xs">Profile</span>
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

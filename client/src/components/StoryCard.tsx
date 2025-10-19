@@ -5,14 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { BookOpen, CheckCircle2, Sparkles, Heart, MessageCircle, Share2, ExternalLink, UserPlus, UserMinus, Bookmark } from "lucide-react";
+import { BookOpen, CheckCircle2, Sparkles, Heart, MessageCircle, Share2, ExternalLink, UserPlus, UserMinus, Bookmark, Volume2, VolumeX } from "lucide-react";
 import { SiX, SiFacebook } from "react-icons/si";
 import { formatDistanceToNow } from "date-fns";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
 
 interface StoryCardProps {
   story: StoryWithAuthor;
@@ -39,8 +40,11 @@ const categoryConfig = {
 export function StoryCard({ story }: StoryCardProps) {
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
+  const { currentPlayingStoryId, setCurrentPlayingStory } = useMusicPlayer();
   const [commentText, setCommentText] = useState("");
   const [showComments, setShowComments] = useState(false);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const config = categoryConfig[story.category as keyof typeof categoryConfig];
   const Icon = config.icon;
   
@@ -56,6 +60,54 @@ export function StoryCard({ story }: StoryCardProps) {
     .slice(0, 2);
 
   const isOwnStory = currentUser?.id === story.userId;
+
+  // Pause music when another story starts playing
+  useEffect(() => {
+    if (currentPlayingStoryId !== story.id && isMusicPlaying) {
+      setIsMusicPlaying(false);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    }
+  }, [currentPlayingStoryId, story.id, isMusicPlaying]);
+
+  // Pause music on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      if (currentPlayingStoryId === story.id) {
+        setCurrentPlayingStory(null);
+      }
+    };
+  }, [currentPlayingStoryId, story.id, setCurrentPlayingStory]);
+
+  // Music player control
+  useEffect(() => {
+    if (story.musicUrl && audioRef.current) {
+      audioRef.current.volume = 0.3; // Soft background music
+      if (isMusicPlaying) {
+        audioRef.current.play().catch(() => {
+          setIsMusicPlaying(false);
+        });
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  }, [isMusicPlaying, story.musicUrl]);
+
+  const toggleMusic = () => {
+    if (story.musicUrl) {
+      const newPlayingState = !isMusicPlaying;
+      setIsMusicPlaying(newPlayingState);
+      if (newPlayingState) {
+        setCurrentPlayingStory(story.id);
+      } else {
+        setCurrentPlayingStory(null);
+      }
+    }
+  };
 
   // Fetch like data
   const { data: likeData, isLoading: likesLoading } = useQuery<{ count: number; isLiked: boolean }>({
@@ -239,21 +291,83 @@ export function StoryCard({ story }: StoryCardProps) {
 
   return (
     <div 
-      className="relative h-screen w-full snap-start snap-always flex items-center justify-center bg-background"
+      className="relative h-screen w-full snap-start snap-always flex items-center justify-center bg-background p-4"
       data-testid={`story-card-${story.id}`}
     >
-      {/* Story Content Container */}
-      <div className="relative w-full max-w-md h-full flex flex-col">
-        {/* Author Header - Top Overlay */}
-        <div className="absolute top-0 left-0 right-0 z-10 p-4 bg-gradient-to-b from-background/80 to-transparent backdrop-blur-sm">
+      {/* Background Music Player */}
+      {story.musicUrl && (
+        <audio ref={audioRef} loop>
+          <source src={story.musicUrl} type="audio/mpeg" />
+        </audio>
+      )}
+
+      {/* Story Content Container - Paper-like design */}
+      <div className="relative w-full max-w-2xl h-full flex flex-col">
+        {/* Cream Paper Background with Story Content */}
+        <div className="flex-1 bg-card rounded-lg shadow-xl overflow-hidden mb-4 border-2 border-card-border">
+          {/* Paper texture overlay */}
+          <div 
+            className="absolute inset-0 opacity-[0.03] pointer-events-none"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            }}
+          />
+
+          {/* Story Content - Scrollable */}
+          <div className="relative h-full overflow-y-auto px-8 py-12 scrollbar-hide">
+            {/* Category Badge - Top */}
+            <div className="mb-6">
+              <Badge className={`${config.colorClass} gap-2 px-3 py-1.5`} data-testid={`category-badge-${story.id}`}>
+                <Icon className="h-4 w-4" />
+                {config.label}
+              </Badge>
+            </div>
+
+            {/* Story Title */}
+            <h2 
+              className="font-display font-bold text-3xl sm:text-4xl text-card-foreground mb-4 leading-tight"
+              data-testid={`story-title-${story.id}`}
+            >
+              {story.title}
+            </h2>
+
+            {/* Caption (if exists) */}
+            {story.caption && (
+              <p 
+                className="text-sm italic text-muted-foreground mb-6 border-l-4 border-primary/30 pl-4"
+                data-testid={`story-caption-${story.id}`}
+              >
+                {story.caption}
+              </p>
+            )}
+
+            {/* Story Content */}
+            <div 
+              className="text-lg text-card-foreground/90 leading-relaxed whitespace-pre-wrap font-serif"
+              data-testid={`story-content-${story.id}`}
+              style={{ textIndent: "2rem" }}
+            >
+              {story.content}
+            </div>
+
+            {/* Timestamp */}
+            <p className="text-xs text-muted-foreground mt-8 text-right" data-testid={`story-time-${story.id}`}>
+              {formatDistanceToNow(new Date(story.createdAt!), { addSuffix: true })}
+            </p>
+          </div>
+        </div>
+
+        {/* Bottom Section - Author & Actions */}
+        <div className="bg-background/95 backdrop-blur-sm rounded-lg p-4 space-y-4">
+          {/* Author Profile Section */}
           <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 ring-2 ring-primary/20" data-testid={`avatar-${story.userId}`}>
+            <Avatar className="h-12 w-12 ring-2 ring-primary/30" data-testid={`avatar-${story.userId}`}>
               <AvatarImage 
                 src={story.user.profileImageUrl || undefined} 
                 alt={displayName}
                 className="object-cover"
               />
-              <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
+              <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                 {initials}
               </AvatarFallback>
             </Avatar>
@@ -261,9 +375,11 @@ export function StoryCard({ story }: StoryCardProps) {
               <p className="font-semibold text-foreground truncate" data-testid={`author-name-${story.id}`}>
                 {displayName}
               </p>
-              <p className="text-xs text-muted-foreground" data-testid={`story-time-${story.id}`}>
-                {formatDistanceToNow(new Date(story.createdAt!), { addSuffix: true })}
-              </p>
+              {story.user.bio && (
+                <p className="text-xs text-muted-foreground truncate">
+                  {story.user.bio}
+                </p>
+              )}
             </div>
             {!isOwnStory && (
               <Button
@@ -290,190 +406,182 @@ export function StoryCard({ story }: StoryCardProps) {
               </Button>
             )}
           </div>
-        </div>
 
-        {/* Main Story Content */}
-        <div className="flex-1 flex items-center justify-center px-6 py-24">
-          <div className="w-full max-h-full overflow-y-auto scrollbar-hide">
-            <h2 
-              className="font-display font-bold text-2xl sm:text-3xl text-foreground mb-6 leading-tight"
-              data-testid={`story-title-${story.id}`}
-            >
-              {story.title}
-            </h2>
-            <div 
-              className="text-base sm:text-lg text-foreground/90 leading-relaxed whitespace-pre-wrap"
-              data-testid={`story-content-${story.id}`}
-            >
-              {story.content}
+          {/* Action Buttons Row */}
+          <div className="flex items-center justify-around gap-2 pt-2 border-t border-border">
+            {/* Like Button */}
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLike}
+                disabled={likesLoading || likeMutation.isPending}
+                className="h-10 w-10 hover-elevate active-elevate-2"
+                data-testid={`button-like-${story.id}`}
+              >
+                <Heart 
+                  className={`h-5 w-5 ${likeData?.isLiked ? "fill-red-500 text-red-500" : ""}`}
+                />
+              </Button>
+              <span className="text-xs font-medium text-muted-foreground" data-testid={`like-count-${story.id}`}>
+                {likeData?.count || 0}
+              </span>
             </div>
-          </div>
-        </div>
 
-        {/* Interactive Buttons - Right Side */}
-        <div className="absolute right-4 bottom-24 z-20 flex flex-col gap-4">
-          {/* Like Button */}
-          <div className="flex flex-col items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLike}
-              disabled={likesLoading || likeMutation.isPending}
-              className="h-12 w-12 rounded-full bg-background/80 backdrop-blur-sm hover-elevate active-elevate-2"
-              data-testid={`button-like-${story.id}`}
-            >
-              <Heart 
-                className={`h-6 w-6 ${likeData?.isLiked ? "fill-red-500 text-red-500" : ""}`}
-              />
-            </Button>
-            <span className="text-xs font-semibold text-foreground" data-testid={`like-count-${story.id}`}>
-              {likeData?.count || 0}
-            </span>
-          </div>
+            {/* Comments Button */}
+            <div className="flex flex-col items-center gap-1">
+              <Sheet open={showComments} onOpenChange={setShowComments}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 hover-elevate active-elevate-2"
+                    data-testid={`button-comments-${story.id}`}
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="h-[80vh]">
+                  <SheetHeader>
+                    <SheetTitle>Comments ({comments.length})</SheetTitle>
+                  </SheetHeader>
+                  <div className="flex flex-col h-full mt-4 gap-4">
+                    {/* Comments List */}
+                    <div className="flex-1 overflow-y-auto space-y-4">
+                      {commentsLoading ? (
+                        <div className="flex justify-center py-8">
+                          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                        </div>
+                      ) : comments.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No comments yet. Be the first to comment!
+                        </div>
+                      ) : (
+                        comments.map((comment) => {
+                          const commentAuthor = comment.user.firstName && comment.user.lastName
+                            ? `${comment.user.firstName} ${comment.user.lastName}`
+                            : comment.user.firstName || comment.user.lastName || "Anonymous";
+                          const commentInitials = commentAuthor
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2);
 
-          {/* Comments Button */}
-          <div className="flex flex-col items-center gap-1">
-            <Sheet open={showComments} onOpenChange={setShowComments}>
-              <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-12 w-12 rounded-full bg-background/80 backdrop-blur-sm hover-elevate active-elevate-2"
-                  data-testid={`button-comments-${story.id}`}
-                >
-                  <MessageCircle className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="h-[80vh]">
-                <SheetHeader>
-                  <SheetTitle>Comments ({comments.length})</SheetTitle>
-                </SheetHeader>
-                <div className="flex flex-col h-full mt-4 gap-4">
-                  {/* Comments List */}
-                  <div className="flex-1 overflow-y-auto space-y-4">
-                    {commentsLoading ? (
-                      <div className="flex justify-center py-8">
-                        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-                      </div>
-                    ) : comments.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No comments yet. Be the first to comment!
-                      </div>
-                    ) : (
-                      comments.map((comment) => {
-                        const commentAuthor = comment.user.firstName && comment.user.lastName
-                          ? `${comment.user.firstName} ${comment.user.lastName}`
-                          : comment.user.firstName || comment.user.lastName || "Anonymous";
-                        const commentInitials = commentAuthor
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase()
-                          .slice(0, 2);
-
-                        return (
-                          <div key={comment.id} className="flex gap-3" data-testid={`comment-${comment.id}`}>
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={comment.user.profileImageUrl || undefined} />
-                              <AvatarFallback className="bg-muted text-xs">{commentInitials}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm">{commentAuthor}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {formatDistanceToNow(new Date(comment.createdAt!), { addSuffix: true })}
-                                </span>
+                          return (
+                            <div key={comment.id} className="flex gap-3" data-testid={`comment-${comment.id}`}>
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={comment.user.profileImageUrl || undefined} />
+                                <AvatarFallback className="bg-muted text-xs">{commentInitials}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-sm">{commentAuthor}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatDistanceToNow(new Date(comment.createdAt!), { addSuffix: true })}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-foreground/90 mt-1">{comment.content}</p>
                               </div>
-                              <p className="text-sm text-foreground/90 mt-1">{comment.content}</p>
                             </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
+                          );
+                        })
+                      )}
+                    </div>
 
-                  {/* Comment Input */}
-                  <div className="border-t pt-4 flex gap-2">
-                    <Textarea
-                      placeholder="Add a comment..."
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      className="flex-1 min-h-10 max-h-32 resize-none"
-                      data-testid={`input-comment-${story.id}`}
-                    />
-                    <Button
-                      onClick={handleComment}
-                      disabled={!commentText.trim() || commentMutation.isPending}
-                      className="hover-elevate active-elevate-2"
-                      data-testid={`button-submit-comment-${story.id}`}
-                    >
-                      {commentMutation.isPending ? "..." : "Post"}
-                    </Button>
+                    {/* Comment Input */}
+                    <div className="border-t pt-4 flex gap-2">
+                      <Textarea
+                        placeholder="Add a comment..."
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        className="flex-1 min-h-10 max-h-32 resize-none"
+                        data-testid={`input-comment-${story.id}`}
+                      />
+                      <Button
+                        onClick={handleComment}
+                        disabled={!commentText.trim() || commentMutation.isPending}
+                        className="hover-elevate active-elevate-2"
+                        data-testid={`button-submit-comment-${story.id}`}
+                      >
+                        {commentMutation.isPending ? "..." : "Post"}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </SheetContent>
-            </Sheet>
-            <span className="text-xs font-semibold text-foreground" data-testid={`comment-count-${story.id}`}>
-              {comments.length}
-            </span>
-          </div>
+                </SheetContent>
+              </Sheet>
+              <span className="text-xs font-medium text-muted-foreground" data-testid={`comment-count-${story.id}`}>
+                {comments.length}
+              </span>
+            </div>
 
-          {/* Share Button */}
-          <div className="flex flex-col items-center gap-1">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            {/* Share Button */}
+            <div className="flex flex-col items-center gap-1">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 hover-elevate active-elevate-2"
+                    data-testid={`button-share-${story.id}`}
+                  >
+                    <Share2 className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => handleShare("link")} data-testid={`share-copy-link-${story.id}`}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Copy Link
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare("twitter")} data-testid={`share-twitter-${story.id}`}>
+                    <SiX className="h-4 w-4 mr-2" />
+                    Share on X
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare("facebook")} data-testid={`share-facebook-${story.id}`}>
+                    <SiFacebook className="h-4 w-4 mr-2" />
+                    Share on Facebook
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Bookmark Button */}
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleBookmark}
+                disabled={bookmarkMutation.isPending}
+                className="h-10 w-10 hover-elevate active-elevate-2"
+                data-testid={`button-bookmark-${story.id}`}
+              >
+                <Bookmark 
+                  className={`h-5 w-5 ${bookmarkData?.isBookmarked ? "fill-primary text-primary" : ""}`}
+                />
+              </Button>
+            </div>
+
+            {/* Music Toggle Button (if music URL exists) */}
+            {story.musicUrl && (
+              <div className="flex flex-col items-center gap-1">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-12 w-12 rounded-full bg-background/80 backdrop-blur-sm hover-elevate active-elevate-2"
-                  data-testid={`button-share-${story.id}`}
+                  onClick={toggleMusic}
+                  className="h-10 w-10 hover-elevate active-elevate-2"
+                  data-testid={`button-music-${story.id}`}
                 >
-                  <Share2 className="h-6 w-6" />
+                  {isMusicPlaying ? (
+                    <Volume2 className="h-5 w-5 text-primary" />
+                  ) : (
+                    <VolumeX className="h-5 w-5" />
+                  )}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => handleShare("link")} data-testid={`share-copy-link-${story.id}`}>
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Copy Link
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleShare("twitter")} data-testid={`share-twitter-${story.id}`}>
-                  <SiX className="h-4 w-4 mr-2" />
-                  Share on X
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleShare("facebook")} data-testid={`share-facebook-${story.id}`}>
-                  <SiFacebook className="h-4 w-4 mr-2" />
-                  Share on Facebook
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </div>
+            )}
           </div>
-
-          {/* Bookmark Button */}
-          <div className="flex flex-col items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBookmark}
-              disabled={bookmarkMutation.isPending}
-              className="h-12 w-12 rounded-full bg-background/80 backdrop-blur-sm hover-elevate active-elevate-2"
-              data-testid={`button-bookmark-${story.id}`}
-            >
-              <Bookmark 
-                className={`h-6 w-6 ${bookmarkData?.isBookmarked ? "fill-primary text-primary" : ""}`}
-              />
-            </Button>
-          </div>
-        </div>
-
-        {/* Category Badge - Bottom */}
-        <div className="absolute bottom-4 left-4 z-10">
-          <Badge className={`${config.colorClass} gap-2 px-3 py-1.5`} data-testid={`category-badge-${story.id}`}>
-            <Icon className="h-4 w-4" />
-            {config.label}
-          </Badge>
         </div>
       </div>
     </div>
   );
 }
-

@@ -69,8 +69,10 @@ export default function EditStory() {
     resolver: zodResolver(insertStorySchema),
     defaultValues: {
       title: "",
+      caption: "",
       content: "",
       category: "fictional",
+      musicUrl: "",
     },
   });
 
@@ -78,8 +80,10 @@ export default function EditStory() {
     if (story) {
       form.reset({
         title: story.title,
+        caption: story.caption || "",
         content: story.content,
         category: story.category as "fictional" | "real" | "both",
+        musicUrl: story.musicUrl || "",
       });
       setSelectedCategory(story.category as "fictional" | "real" | "both");
     }
@@ -242,6 +246,29 @@ export default function EditStory() {
               )}
             />
 
+            {/* Caption Field */}
+            <FormField
+              control={form.control}
+              name="caption"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-semibold">Caption (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="A short caption or tagline for your story..."
+                      className="text-base"
+                      data-testid="input-story-caption"
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    {field.value?.length || 0} / 500 characters
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* Content Field */}
             <FormField
               control={form.control}
@@ -259,6 +286,30 @@ export default function EditStory() {
                   </FormControl>
                   <p className="text-xs text-muted-foreground">
                     {field.value.length} / 10,000 characters
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Background Music URL Field */}
+            <FormField
+              control={form.control}
+              name="musicUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-semibold">Background Music (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="url"
+                      placeholder="https://example.com/music.mp3"
+                      className="text-base"
+                      data-testid="input-music-url"
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Add a URL to background music that plays while readers enjoy your story
                   </p>
                   <FormMessage />
                 </FormItem>
