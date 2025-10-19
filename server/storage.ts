@@ -31,6 +31,9 @@ export interface IStorage {
   getStories(): Promise<StoryWithAuthor[]>;
   getUserStories(userId: string): Promise<Story[]>;
   searchStories(query: string, category?: string): Promise<StoryWithAuthor[]>;
+  getStory(storyId: string): Promise<Story | undefined>;
+  updateStory(storyId: string, userId: string, data: InsertStory): Promise<Story>;
+  deleteStory(storyId: string, userId: string): Promise<void>;
   
   // Like operations
   likeStory(userId: string, storyId: string): Promise<Like>;
@@ -168,6 +171,44 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(stories.createdAt));
     
     return result;
+  }
+
+  async getStory(storyId: string): Promise<Story | undefined> {
+    const [story] = await db
+      .select()
+      .from(stories)
+      .where(eq(stories.id, storyId));
+    return story;
+  }
+
+  async updateStory(storyId: string, userId: string, data: InsertStory): Promise<Story> {
+    const [story] = await db
+      .update(stories)
+      .set({
+        title: data.title,
+        content: data.content,
+        category: data.category,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(stories.id, storyId), eq(stories.userId, userId)))
+      .returning();
+    
+    if (!story) {
+      throw new Error("Story not found or unauthorized");
+    }
+    
+    return story;
+  }
+
+  async deleteStory(storyId: string, userId: string): Promise<void> {
+    const result = await db
+      .delete(stories)
+      .where(and(eq(stories.id, storyId), eq(stories.userId, userId)))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error("Story not found or unauthorized");
+    }
   }
 
   // Like operations

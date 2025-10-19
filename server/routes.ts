@@ -93,6 +93,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/stories/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const storyId = req.params.id;
+      const story = await storage.getStory(storyId);
+      
+      if (!story) {
+        return res.status(404).json({ message: "Story not found" });
+      }
+      
+      res.json(story);
+    } catch (error) {
+      console.error("Error fetching story:", error);
+      res.status(500).json({ message: "Failed to fetch story" });
+    }
+  });
+
+  app.patch('/api/stories/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const storyId = req.params.id;
+      const result = insertStorySchema.safeParse(req.body);
+      
+      if (!result.success) {
+        const validationError = fromError(result.error);
+        return res.status(400).json({ message: validationError.toString() });
+      }
+
+      const story = await storage.updateStory(storyId, userId, result.data);
+      res.json(story);
+    } catch (error: any) {
+      console.error("Error updating story:", error);
+      if (error.message === "Story not found or unauthorized") {
+        return res.status(404).json({ message: error.message });
+      }
+      res.status(500).json({ message: "Failed to update story" });
+    }
+  });
+
+  app.delete('/api/stories/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const storyId = req.params.id;
+      
+      await storage.deleteStory(storyId, userId);
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Error deleting story:", error);
+      if (error.message === "Story not found or unauthorized") {
+        return res.status(404).json({ message: error.message });
+      }
+      res.status(500).json({ message: "Failed to delete story" });
+    }
+  });
+
   // Like routes
   app.post('/api/stories/:id/like', isAuthenticated, async (req: any, res) => {
     try {

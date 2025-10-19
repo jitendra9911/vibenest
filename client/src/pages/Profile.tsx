@@ -10,8 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, LogOut, BookOpen, Edit2, Save, X } from "lucide-react";
-import { Link } from "wouter";
+import { ArrowLeft, LogOut, BookOpen, Edit2, Save, X, Trash2, Edit } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useState, useEffect } from "react";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -19,6 +19,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 export default function Profile() {
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [isEditing, setIsEditing] = useState(false);
 
   const { data: userStories, isLoading: storiesLoading } = useQuery<Story[]>({
@@ -71,8 +72,47 @@ export default function Profile() {
     },
   });
 
+  const deleteStoryMutation = useMutation({
+    mutationFn: async (storyId: string) => {
+      return await apiRequest("DELETE", `/api/stories/${storyId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stories/my"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stories/personalized"] });
+      toast({
+        title: "Story deleted",
+        description: "Your story has been removed.",
+      });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete story.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleLogout = () => {
     window.location.href = "/api/logout";
+  };
+
+  const handleDeleteStory = (storyId: string) => {
+    if (confirm("Are you sure you want to delete this story? This action cannot be undone.")) {
+      deleteStoryMutation.mutate(storyId);
+    }
   };
 
   const onSubmit = (data: UpdateProfile) => {
@@ -289,7 +329,30 @@ export default function Profile() {
             <div className="grid gap-4">
               {userStories.map((story) => (
                 <Card key={story.id} className="p-4 hover-elevate" data-testid={`my-story-${story.id}`}>
-                  <h4 className="font-semibold text-foreground mb-2">{story.title}</h4>
+                  <div className="flex items-start justify-between gap-4 mb-2">
+                    <h4 className="font-semibold text-foreground flex-1">{story.title}</h4>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/edit/${story.id}`)}
+                        data-testid={`button-edit-story-${story.id}`}
+                        className="h-8 w-8 hover-elevate active-elevate-2"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteStory(story.id)}
+                        disabled={deleteStoryMutation.isPending}
+                        data-testid={`button-delete-story-${story.id}`}
+                        className="h-8 w-8 hover-elevate active-elevate-2 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                     {story.content}
                   </p>
