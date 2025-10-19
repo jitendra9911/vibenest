@@ -314,7 +314,7 @@ export function StoryCard({ story }: StoryCardProps) {
           />
 
           {/* Story Content - Scrollable */}
-          <div className="relative h-full overflow-y-auto px-8 py-12 scrollbar-hide">
+          <div className="relative h-full overflow-y-auto px-8 py-12 scrollbar-hide bg-[#fdfbd4]">
             {/* Category Badge - Top */}
             <div className="mb-6">
               <Badge className={`${config.colorClass} gap-2 px-3 py-1.5`} data-testid={`category-badge-${story.id}`}>
