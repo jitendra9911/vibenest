@@ -21,11 +21,11 @@ jobs:
         node-version: '20'
         cache: 'npm'
         
-    - name: Setup Java
+    - name: Setup Java 21
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '17'
+        java-version: '21'
         
     - name: Install dependencies
       run: npm ci
@@ -36,29 +36,12 @@ jobs:
     - name: Sync Capacitor
       run: npx cap sync android
       
-    - name: Patch ALL Java 21 to Java 17
-      run: |
-        echo "Patching all Java version references..."
-        find android -name "*.gradle" -type f -exec sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' {} \;
-        find node_modules/@capacitor/android -name "*.gradle" -type f -exec sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' {} \;
-        echo "Patching complete!"
-        
-    - name: Verify Java 17 in all gradle files
-      run: |
-        echo "Checking for any remaining Java 21 references..."
-        if grep -r "VERSION_21" android/ node_modules/@capacitor/android/; then
-          echo "ERROR: Found Java 21 references!"
-          exit 1
-        else
-          echo "SUCCESS: All Java versions set to 17"
-        fi
-      
     - name: Make gradlew executable
       run: chmod +x android/gradlew
       
     - name: Build Android APK
       working-directory: ./android
-      run: ./gradlew assembleDebug
+      run: ./gradlew assembleDebug --no-daemon
       
     - name: Upload APK
       uses: actions/upload-artifact@v4
