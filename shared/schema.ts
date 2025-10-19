@@ -39,8 +39,10 @@ export const stories = pgTable("stories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   title: varchar("title", { length: 200 }).notNull(),
+  caption: varchar("caption", { length: 500 }),
   content: text("content").notNull(),
   category: varchar("category", { length: 20 }).notNull(), // 'fictional', 'real', or 'both'
+  musicUrl: varchar("music_url", { length: 500 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -160,10 +162,12 @@ export const insertStorySchema = createInsertSchema(stories).omit({
   createdAt: true,
 }).extend({
   title: z.string().min(1, "Title is required").max(200, "Title must be under 200 characters"),
+  caption: z.string().max(500, "Caption must be under 500 characters").optional(),
   content: z.string().min(1, "Story content is required").max(10000, "Story is too long"),
   category: z.enum(["fictional", "real", "both"], {
     errorMap: () => ({ message: "Category must be fictional, real, or both" })
   }),
+  musicUrl: z.string().url("Must be a valid URL").max(500, "URL is too long").optional().or(z.literal("")),
 });
 
 export type InsertStory = z.infer<typeof insertStorySchema>;
