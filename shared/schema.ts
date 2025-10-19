@@ -50,7 +50,9 @@ export const likes = pgTable("likes", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   storyId: varchar("story_id").notNull().references(() => stories.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  uniqueUserStory: index("unique_user_story_like").on(table.userId, table.storyId),
+}));
 
 // Comments table
 export const comments = pgTable("comments", {
