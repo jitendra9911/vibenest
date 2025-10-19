@@ -27,6 +27,16 @@ export default function Profile() {
     enabled: !!user,
   });
 
+  const { data: followStats } = useQuery<{ followerCount: number; followingCount: number }>({
+    queryKey: ["/api/users", user?.id, "follow-status"],
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${user?.id}/follow-status`);
+      if (!response.ok) throw new Error("Failed to fetch follow stats");
+      return response.json();
+    },
+    enabled: !!user?.id,
+  });
+
   const form = useForm<UpdateProfile>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
@@ -181,7 +191,23 @@ export default function Profile() {
                 {storyCount}
               </p>
               <p className="text-sm text-muted-foreground">
-                {storyCount === 1 ? "Story" : "Stories"}
+                {storyCount === 1 ? "Post" : "Posts"}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="font-display font-bold text-2xl text-foreground" data-testid="text-follower-count">
+                {followStats?.followerCount || 0}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Followers
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="font-display font-bold text-2xl text-foreground" data-testid="text-following-count">
+                {followStats?.followingCount || 0}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Following
               </p>
             </div>
           </div>
