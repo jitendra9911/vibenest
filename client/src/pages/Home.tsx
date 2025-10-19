@@ -65,6 +65,15 @@ export default function Home() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
+      {/* App Banner - Top Left */}
+      <div className="fixed top-4 left-4 z-50">
+        <div className="bg-background/80 backdrop-blur-md px-4 py-2 rounded-full shadow-lg">
+          <h1 className="font-display font-bold text-lg text-primary" data-testid="app-name">
+            VibeNest
+          </h1>
+        </div>
+      </div>
+
       {/* Story Feed - Now full screen */}
       <div 
         className="flex-1 overflow-y-auto snap-y snap-mandatory scroll-smooth"

@@ -555,15 +555,6 @@ export function StoryCard({ story }: StoryCardProps) {
             )}
           </div>
 
-          {/* App Banner - Top Left */}
-          <div className="absolute top-4 left-4 z-20">
-            <div className="bg-background/80 backdrop-blur-md px-4 py-2 rounded-full shadow-lg">
-              <h1 className="font-display font-bold text-lg text-primary" data-testid="app-name">
-                VibeNest
-              </h1>
-            </div>
-          </div>
-
           {/* Timestamp - Top Right */}
           <div className="absolute top-4 right-4 z-20">
             <p className="text-xs text-foreground bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg" data-testid={`story-time-${story.id}`}>
