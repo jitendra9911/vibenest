@@ -3,7 +3,9 @@ import { useAuth } from "@/hooks/useAuth";
 import type { StoryWithAuthor } from "@shared/schema";
 import { StoryCard } from "@/components/StoryCard";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Plus, User, ChevronDown } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { BookOpen, Plus, User, Search, X } from "lucide-react";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useEffect, useState } from "react";
@@ -11,9 +13,28 @@ import { useEffect, useState } from "react";
 export default function Home() {
   const { user, isLoading: authLoading } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [category, setCategory] = useState<string>("all");
+  const [showSearch, setShowSearch] = useState(false);
+  
+  // Use search endpoint if there's a query or category filter, otherwise use personalized feed
+  const useSearchEndpoint = searchQuery.trim() !== "" || category !== "all";
   
   const { data: stories, isLoading: storiesLoading } = useQuery<StoryWithAuthor[]>({
-    queryKey: ["/api/stories/personalized"],
+    queryKey: useSearchEndpoint 
+      ? ["/api/stories/search", { q: searchQuery, category: category !== "all" ? category : undefined }]
+      : ["/api/stories/personalized"],
+    queryFn: async () => {
+      if (useSearchEndpoint) {
+        const params = new URLSearchParams();
+        if (searchQuery.trim()) params.append('q', searchQuery);
+        if (category !== 'all') params.append('category', category);
+        const response = await fetch(`/api/stories/search?${params.toString()}`);
+        if (!response.ok) throw new Error("Failed to search stories");
+        return response.json();
+      }
+      return undefined;
+    },
     enabled: !!user,
   });
 
@@ -57,38 +78,103 @@ export default function Home() {
     <div className="h-screen flex flex-col bg-background">
       {/* Top Navigation Bar - Mobile & Desktop */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
-              <BookOpen className="h-5 w-5 text-primary-foreground" />
+        <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
+                <BookOpen className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="font-display font-bold text-lg text-foreground hidden sm:inline">
+                Story Social
+              </span>
             </div>
-            <span className="font-display font-bold text-lg text-foreground hidden sm:inline">
-              Story Social
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Link href="/create">
-              <Button 
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
                 size="icon"
-                data-testid="button-create-story"
+                onClick={() => setShowSearch(!showSearch)}
+                data-testid="button-toggle-search"
                 className="hover-elevate active-elevate-2"
               >
-                <Plus className="h-5 w-5" />
+                {showSearch ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
               </Button>
-            </Link>
-            <Link href="/profile">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                data-testid="button-profile"
-                className="hover-elevate active-elevate-2"
-              >
-                <User className="h-5 w-5" />
-              </Button>
-            </Link>
+              <ThemeToggle />
+              <Link href="/create">
+                <Button 
+                  size="icon"
+                  data-testid="button-create-story"
+                  className="hover-elevate active-elevate-2"
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </Link>
+              <Link href="/profile">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  data-testid="button-profile"
+                  className="hover-elevate active-elevate-2"
+                >
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
           </div>
+
+          {/* Search & Filter Section */}
+          {showSearch && (
+            <div className="space-y-3">
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search stories..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-search"
+                />
+              </div>
+
+              {/* Category Filter */}
+              <div className="flex gap-2 flex-wrap">
+                <Badge
+                  variant={category === "all" ? "default" : "outline"}
+                  className="cursor-pointer hover-elevate active-elevate-2"
+                  onClick={() => setCategory("all")}
+                  data-testid="filter-all"
+                >
+                  All
+                </Badge>
+                <Badge
+                  variant={category === "fictional" ? "default" : "outline"}
+                  className="cursor-pointer hover-elevate active-elevate-2"
+                  onClick={() => setCategory("fictional")}
+                  data-testid="filter-fictional"
+                >
+                  Fictional
+                </Badge>
+                <Badge
+                  variant={category === "real" ? "default" : "outline"}
+                  className="cursor-pointer hover-elevate active-elevate-2"
+                  onClick={() => setCategory("real")}
+                  data-testid="filter-real"
+                >
+                  Real Story
+                </Badge>
+                <Badge
+                  variant={category === "both" ? "default" : "outline"}
+                  className="cursor-pointer hover-elevate active-elevate-2"
+                  onClick={() => setCategory("both")}
+                  data-testid="filter-both"
+                >
+                  Mixed
+                </Badge>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -135,14 +221,6 @@ export default function Home() {
                 <StoryCard story={story} />
               </div>
             ))}
-            {/* Scroll Hint */}
-            {stories.length > 1 && currentIndex === 0 && (
-              <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 animate-bounce">
-                <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 border border-border">
-                  <ChevronDown className="h-6 w-6 text-muted-foreground" />
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>

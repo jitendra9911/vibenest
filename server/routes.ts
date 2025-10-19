@@ -80,6 +80,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/stories/search', isAuthenticated, async (req: any, res) => {
+    try {
+      const query = req.query.q as string || '';
+      const category = req.query.category as string || undefined;
+      
+      const stories = await storage.searchStories(query, category);
+      res.json(stories);
+    } catch (error) {
+      console.error("Error searching stories:", error);
+      res.status(500).json({ message: "Failed to search stories" });
+    }
+  });
+
   // Like routes
   app.post('/api/stories/:id/like', isAuthenticated, async (req: any, res) => {
     try {

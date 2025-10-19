@@ -17,7 +17,7 @@ import {
   type Follow,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, count, or, inArray } from "drizzle-orm";
+import { eq, desc, and, count, or, inArray, ilike } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -30,6 +30,7 @@ export interface IStorage {
   createStory(userId: string, story: InsertStory): Promise<Story>;
   getStories(): Promise<StoryWithAuthor[]>;
   getUserStories(userId: string): Promise<Story[]>;
+  searchStories(query: string, category?: string): Promise<StoryWithAuthor[]>;
   
   // Like operations
   likeStory(userId: string, storyId: string): Promise<Like>;
@@ -123,6 +124,50 @@ export class DatabaseStorage implements IStorage {
       .from(stories)
       .where(eq(stories.userId, userId))
       .orderBy(desc(stories.createdAt));
+  }
+
+  async searchStories(query: string, category?: string): Promise<StoryWithAuthor[]> {
+    const conditions = [];
+    
+    // Add text search conditions
+    if (query) {
+      conditions.push(
+        or(
+          ilike(stories.title, `%${query}%`),
+          ilike(stories.content, `%${query}%`)
+        )
+      );
+    }
+    
+    // Add category filter
+    if (category && category !== 'all') {
+      conditions.push(eq(stories.category, category));
+    }
+    
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    const result = await db
+      .select({
+        id: stories.id,
+        userId: stories.userId,
+        title: stories.title,
+        content: stories.content,
+        category: stories.category,
+        createdAt: stories.createdAt,
+        user: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          bio: users.bio,
+        },
+      })
+      .from(stories)
+      .innerJoin(users, eq(stories.userId, users.id))
+      .where(whereClause)
+      .orderBy(desc(stories.createdAt));
+    
+    return result;
   }
 
   // Like operations
