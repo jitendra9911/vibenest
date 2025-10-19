@@ -13,7 +13,7 @@ export default function Home() {
   const [currentIndex, setCurrentIndex] = useState(0);
   
   const { data: stories, isLoading: storiesLoading } = useQuery<StoryWithAuthor[]>({
-    queryKey: ["/api/stories"],
+    queryKey: ["/api/stories/personalized"],
     enabled: !!user,
   });
 

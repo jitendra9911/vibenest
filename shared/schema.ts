@@ -63,11 +63,23 @@ export const comments = pgTable("comments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Follows table - user following system
+export const follows = pgTable("follows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  followerId: varchar("follower_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  followingId: varchar("following_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  uniqueFollow: index("unique_follower_following").on(table.followerId, table.followingId),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   stories: many(stories),
   likes: many(likes),
   comments: many(comments),
+  followers: many(follows, { relationName: "followers" }),
+  following: many(follows, { relationName: "following" }),
 }));
 
 export const storiesRelations = relations(stories, ({ one, many }) => ({
@@ -98,6 +110,19 @@ export const commentsRelations = relations(comments, ({ one }) => ({
   story: one(stories, {
     fields: [comments.storyId],
     references: [stories.id],
+  }),
+}));
+
+export const followsRelations = relations(follows, ({ one }) => ({
+  follower: one(users, {
+    fields: [follows.followerId],
+    references: [users.id],
+    relationName: "followers",
+  }),
+  following: one(users, {
+    fields: [follows.followingId],
+    references: [users.id],
+    relationName: "following",
   }),
 }));
 
@@ -164,3 +189,6 @@ export type CommentWithAuthor = Comment & {
     profileImageUrl: string | null;
   };
 };
+
+// Follow schemas
+export type Follow = typeof follows.$inferSelect;

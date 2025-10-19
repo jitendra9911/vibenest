@@ -161,6 +161,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Follow routes
+  app.post('/api/users/:id/follow', isAuthenticated, async (req: any, res) => {
+    try {
+      const followerId = req.user.claims.sub;
+      const followingId = req.params.id;
+      
+      // Check if already following
+      const isFollowing = await storage.isUserFollowing(followerId, followingId);
+      if (isFollowing) {
+        return res.status(400).json({ message: "Already following this user" });
+      }
+      
+      // Prevent self-follow
+      if (followerId === followingId) {
+        return res.status(400).json({ message: "Cannot follow yourself" });
+      }
+      
+      const follow = await storage.followUser(followerId, followingId);
+      res.status(201).json(follow);
+    } catch (error) {
+      console.error("Error following user:", error);
+      res.status(500).json({ message: "Failed to follow user" });
+    }
+  });
+
+  app.delete('/api/users/:id/follow', isAuthenticated, async (req: any, res) => {
+    try {
+      const followerId = req.user.claims.sub;
+      const followingId = req.params.id;
+      
+      await storage.unfollowUser(followerId, followingId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error unfollowing user:", error);
+      res.status(500).json({ message: "Failed to unfollow user" });
+    }
+  });
+
+  app.get('/api/users/:id/follow-status', isAuthenticated, async (req: any, res) => {
+    try {
+      const followerId = req.user.claims.sub;
+      const followingId = req.params.id;
+      
+      const [isFollowing, followerCount, followingCount] = await Promise.all([
+        storage.isUserFollowing(followerId, followingId),
+        storage.getFollowerCount(followingId),
+        storage.getFollowingCount(followingId),
+      ]);
+      
+      res.json({ isFollowing, followerCount, followingCount });
+    } catch (error) {
+      console.error("Error fetching follow status:", error);
+      res.status(500).json({ message: "Failed to fetch follow status" });
+    }
+  });
+
+  app.get('/api/stories/personalized', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const stories = await storage.getPersonalizedStories(userId);
+      res.json(stories);
+    } catch (error) {
+      console.error("Error fetching personalized stories:", error);
+      res.status(500).json({ message: "Failed to fetch personalized stories" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

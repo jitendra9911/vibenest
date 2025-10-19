@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { BookOpen, CheckCircle2, Sparkles, Heart, MessageCircle, Share2, ExternalLink } from "lucide-react";
+import { BookOpen, CheckCircle2, Sparkles, Heart, MessageCircle, Share2, ExternalLink, UserPlus, UserMinus } from "lucide-react";
 import { SiX, SiFacebook } from "react-icons/si";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface StoryCardProps {
   story: StoryWithAuthor;
@@ -37,6 +38,7 @@ const categoryConfig = {
 
 export function StoryCard({ story }: StoryCardProps) {
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
   const [commentText, setCommentText] = useState("");
   const [showComments, setShowComments] = useState(false);
   const config = categoryConfig[story.category as keyof typeof categoryConfig];
@@ -52,6 +54,8 @@ export function StoryCard({ story }: StoryCardProps) {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+
+  const isOwnStory = currentUser?.id === story.userId;
 
   // Fetch like data
   const { data: likeData, isLoading: likesLoading } = useQuery<{ count: number; isLiked: boolean }>({
@@ -117,8 +121,51 @@ export function StoryCard({ story }: StoryCardProps) {
     },
   });
 
+  // Fetch follow status
+  const { data: followData } = useQuery<{ isFollowing: boolean; followerCount: number; followingCount: number }>({
+    queryKey: ["/api/users", story.userId, "follow-status"],
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${story.userId}/follow-status`);
+      if (!response.ok) throw new Error("Failed to fetch follow status");
+      return response.json();
+    },
+    enabled: !isOwnStory,
+  });
+
+  // Follow mutation
+  const followMutation = useMutation({
+    mutationFn: async () => {
+      if (followData?.isFollowing) {
+        return await apiRequest("DELETE", `/api/users/${story.userId}/follow`);
+      } else {
+        return await apiRequest("POST", `/api/users/${story.userId}/follow`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users", story.userId, "follow-status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stories/personalized"] });
+      toast({
+        title: followData?.isFollowing ? "Unfollowed" : "Following",
+        description: followData?.isFollowing 
+          ? `You unfollowed ${displayName}` 
+          : `You are now following ${displayName}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update follow status",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleLike = () => {
     likeMutation.mutate();
+  };
+
+  const handleFollow = () => {
+    followMutation.mutate();
   };
 
   const handleComment = () => {
@@ -176,6 +223,30 @@ export function StoryCard({ story }: StoryCardProps) {
                 {formatDistanceToNow(new Date(story.createdAt!), { addSuffix: true })}
               </p>
             </div>
+            {!isOwnStory && (
+              <Button
+                variant={followData?.isFollowing ? "outline" : "default"}
+                size="sm"
+                onClick={handleFollow}
+                disabled={followMutation.isPending}
+                className="gap-1.5 hover-elevate active-elevate-2"
+                data-testid={`button-follow-${story.userId}`}
+              >
+                {followMutation.isPending ? (
+                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                ) : followData?.isFollowing ? (
+                  <>
+                    <UserMinus className="h-4 w-4" />
+                    Following
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4" />
+                    Follow
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </div>
 

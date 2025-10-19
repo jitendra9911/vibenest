@@ -3,6 +3,7 @@ import {
   stories,
   likes,
   comments,
+  follows,
   type User,
   type UpsertUser,
   type Story,
@@ -13,9 +14,10 @@ import {
   type Comment,
   type InsertComment,
   type CommentWithAuthor,
+  type Follow,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, count } from "drizzle-orm";
+import { eq, desc, and, count, or, inArray } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -38,6 +40,14 @@ export interface IStorage {
   // Comment operations
   addComment(userId: string, storyId: string, content: string): Promise<CommentWithAuthor>;
   getStoryComments(storyId: string): Promise<CommentWithAuthor[]>;
+  
+  // Follow operations
+  followUser(followerId: string, followingId: string): Promise<Follow>;
+  unfollowUser(followerId: string, followingId: string): Promise<void>;
+  isUserFollowing(followerId: string, followingId: string): Promise<boolean>;
+  getFollowerCount(userId: string): Promise<number>;
+  getFollowingCount(userId: string): Promise<number>;
+  getPersonalizedStories(userId: string): Promise<StoryWithAuthor[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -189,6 +199,93 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(comments.createdAt));
     
     return result;
+  }
+
+  // Follow operations
+  async followUser(followerId: string, followingId: string): Promise<Follow> {
+    const [follow] = await db
+      .insert(follows)
+      .values({ followerId, followingId })
+      .returning();
+    return follow;
+  }
+
+  async unfollowUser(followerId: string, followingId: string): Promise<void> {
+    await db
+      .delete(follows)
+      .where(and(eq(follows.followerId, followerId), eq(follows.followingId, followingId)));
+  }
+
+  async isUserFollowing(followerId: string, followingId: string): Promise<boolean> {
+    const [follow] = await db
+      .select()
+      .from(follows)
+      .where(and(eq(follows.followerId, followerId), eq(follows.followingId, followingId)))
+      .limit(1);
+    return !!follow;
+  }
+
+  async getFollowerCount(userId: string): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(follows)
+      .where(eq(follows.followingId, userId));
+    return result[0]?.count || 0;
+  }
+
+  async getFollowingCount(userId: string): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(follows)
+      .where(eq(follows.followerId, userId));
+    return result[0]?.count || 0;
+  }
+
+  async getPersonalizedStories(userId: string): Promise<StoryWithAuthor[]> {
+    // Get IDs of users that the current user follows
+    const followingUsers = await db
+      .select({ id: follows.followingId })
+      .from(follows)
+      .where(eq(follows.followerId, userId));
+    
+    const followingIds = followingUsers.map(f => f.id);
+    
+    // If not following anyone, return all stories
+    if (followingIds.length === 0) {
+      return this.getStories();
+    }
+    
+    // Get stories from followed users first, then all other stories
+    const result = await db
+      .select({
+        id: stories.id,
+        userId: stories.userId,
+        title: stories.title,
+        content: stories.content,
+        category: stories.category,
+        createdAt: stories.createdAt,
+        user: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          bio: users.bio,
+        },
+      })
+      .from(stories)
+      .innerJoin(users, eq(stories.userId, users.id))
+      .orderBy(desc(stories.createdAt));
+    
+    // Sort: followed users' stories first
+    const sorted = result.sort((a, b) => {
+      const aIsFollowed = followingIds.includes(a.userId);
+      const bIsFollowed = followingIds.includes(b.userId);
+      if (aIsFollowed && !bIsFollowed) return -1;
+      if (!aIsFollowed && bIsFollowed) return 1;
+      return 0;
+    });
+    
+    return sorted;
   }
 }
 
