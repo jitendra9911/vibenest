@@ -1,10 +1,16 @@
 import express, { type Request, Response, NextFunction } from "express";
+import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Health check endpoint - must be before any async operations
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -36,8 +42,25 @@ app.use((req, res, next) => {
   next();
 });
 
+// Create HTTP server immediately
+const server = createServer(app);
+
+// ALWAYS serve the app on the port specified in the environment variable PORT
+// Other ports are firewalled. Default to 5000 if not specified.
+const port = parseInt(process.env.PORT || '5000', 10);
+
+// Start listening immediately so health checks work
+server.listen({
+  port,
+  host: "0.0.0.0",
+  reusePort: true,
+}, () => {
+  log(`serving on port ${port}`);
+});
+
+// Register routes and setup Vite in the background
 (async () => {
-  const server = await registerRoutes(app);
+  await registerRoutes(app, server);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -56,16 +79,5 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  log(`routes and vite setup complete`);
 })();

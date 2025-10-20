@@ -5,7 +5,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertStorySchema, updateProfileSchema, insertCommentSchema } from "@shared/schema";
 import { fromError } from "zod-validation-error";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, existingServer?: Server): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
@@ -352,6 +352,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
+  const httpServer = existingServer || createServer(app);
   return httpServer;
 }

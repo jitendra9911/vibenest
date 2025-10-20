@@ -54,8 +54,8 @@ export default function DownloadApp() {
             
             {/* Direct APK Download */}
             <a 
-              href="https://github.com/jitendra9911/vibenest/releases/download/v1.0.0/app-debug.apk"
-              download="VibeNest-v1.0.0.apk"
+              href="https://github.com/jitendra9911/vibenest/releases/download/v1.0.1/app-debug.apk"
+              download="VibeNest-v1.0.1.apk"
               data-testid="link-download-apk"
             >
               <Button 
@@ -64,7 +64,7 @@ export default function DownloadApp() {
               >
                 <Download className="h-5 w-5" />
                 <div className="flex flex-col items-start">
-                  <span>Download APK v1.0.0</span>
+                  <span>Download APK v1.0.1</span>
                   <span className="text-xs opacity-80">Direct Install • ~15 MB</span>
                 </div>
               </Button>
@@ -82,7 +82,7 @@ export default function DownloadApp() {
             </Button>
 
             <p className="text-sm text-muted-foreground text-center">
-              <strong>Note:</strong> The APK link will work after you create a release on GitHub (instructions below).
+              <strong>Latest version:</strong> v1.0.1 with production backend support
             </p>
           </div>
 
