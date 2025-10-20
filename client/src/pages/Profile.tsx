@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateProfileSchema, type UpdateProfile, type Story } from "@shared/schema";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, getApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,7 +30,7 @@ export default function Profile() {
   const { data: followStats } = useQuery<{ followerCount: number; followingCount: number }>({
     queryKey: ["/api/users", user?.id, "follow-status"],
     queryFn: async () => {
-      const response = await fetch(`/api/users/${user?.id}/follow-status`);
+      const response = await fetch(getApiUrl(`/api/users/${user?.id}/follow-status`));
       if (!response.ok) throw new Error("Failed to fetch follow stats");
       return response.json();
     },

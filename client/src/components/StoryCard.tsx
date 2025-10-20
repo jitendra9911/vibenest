@@ -10,7 +10,7 @@ import { SiX, SiFacebook } from "react-icons/si";
 import { formatDistanceToNow } from "date-fns";
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, getApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
@@ -113,7 +113,7 @@ export function StoryCard({ story }: StoryCardProps) {
   const { data: likeData, isLoading: likesLoading } = useQuery<{ count: number; isLiked: boolean }>({
     queryKey: ["/api/stories", story.id, "likes"],
     queryFn: async () => {
-      const response = await fetch(`/api/stories/${story.id}/likes`);
+      const response = await fetch(getApiUrl(`/api/stories/${story.id}/likes`));
       if (!response.ok) throw new Error("Failed to fetch likes");
       return response.json();
     },
@@ -123,7 +123,7 @@ export function StoryCard({ story }: StoryCardProps) {
   const { data: comments = [], isLoading: commentsLoading } = useQuery<CommentWithAuthor[]>({
     queryKey: ["/api/stories", story.id, "comments"],
     queryFn: async () => {
-      const response = await fetch(`/api/stories/${story.id}/comments`);
+      const response = await fetch(getApiUrl(`/api/stories/${story.id}/comments`));
       if (!response.ok) throw new Error("Failed to fetch comments");
       return response.json();
     },
@@ -134,7 +134,7 @@ export function StoryCard({ story }: StoryCardProps) {
   const { data: followData } = useQuery<{ isFollowing: boolean }>({
     queryKey: ["/api/users", story.userId, "follow-status"],
     queryFn: async () => {
-      const response = await fetch(`/api/users/${story.userId}/follow-status`);
+      const response = await fetch(getApiUrl(`/api/users/${story.userId}/follow-status`));
       if (!response.ok) throw new Error("Failed to fetch follow status");
       return response.json();
     },
@@ -145,7 +145,7 @@ export function StoryCard({ story }: StoryCardProps) {
   const { data: bookmarkData } = useQuery<{ isBookmarked: boolean }>({
     queryKey: ["/api/stories", story.id, "bookmark-status"],
     queryFn: async () => {
-      const response = await fetch(`/api/stories/${story.id}/bookmark-status`);
+      const response = await fetch(getApiUrl(`/api/stories/${story.id}/bookmark-status`));
       if (!response.ok) throw new Error("Failed to fetch bookmark status");
       return response.json();
     },

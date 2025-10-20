@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
 import { insertStorySchema, type InsertStory, type Story } from "@shared/schema";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, getApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -53,7 +53,7 @@ export default function EditStory() {
   const { data: story, isLoading } = useQuery<Story>({
     queryKey: ["/api/stories", storyId],
     queryFn: async () => {
-      const response = await fetch(`/api/stories/${storyId}`);
+      const response = await fetch(getApiUrl(`/api/stories/${storyId}`));
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error("Story not found");
