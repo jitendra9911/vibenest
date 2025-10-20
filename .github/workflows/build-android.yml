@@ -55,7 +55,7 @@ jobs:
     - name: Build Android Release APK
       working-directory: ./android
       env:
-        RELEASE_STORE_FILE: keystore/release.keystore
+        RELEASE_STORE_FILE: app/keystore/release.keystore
         RELEASE_STORE_PASSWORD: vibenest2024
         RELEASE_KEY_ALIAS: vibenest
         RELEASE_KEY_PASSWORD: vibenest2024
