@@ -26,7 +26,10 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="vibenest" />
+                <data 
+                    android:scheme="vibenest" 
+                    android:host="auth" 
+                    android:pathPrefix="/callback" />
             </intent-filter>
 
         </activity>
