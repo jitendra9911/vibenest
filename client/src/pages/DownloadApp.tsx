@@ -54,8 +54,8 @@ export default function DownloadApp() {
             
             {/* Direct APK Download */}
             <a 
-              href="https://github.com/jitendra9911/vibenest/releases/download/v1.0.2/app-debug.apk"
-              download="VibeNest-v1.0.2.apk"
+              href="https://github.com/jitendra9911/vibenest/releases/download/v1.0.3/app-release.apk"
+              download="VibeNest-v1.0.3.apk"
               data-testid="link-download-apk"
             >
               <Button 
@@ -64,8 +64,8 @@ export default function DownloadApp() {
               >
                 <Download className="h-5 w-5" />
                 <div className="flex flex-col items-start">
-                  <span>Download APK v1.0.2</span>
-                  <span className="text-xs opacity-80">Direct Install • ~15 MB</span>
+                  <span>Download APK v1.0.3</span>
+                  <span className="text-xs opacity-80">Optimized Release • ~8 MB</span>
                 </div>
               </Button>
             </a>
@@ -82,7 +82,7 @@ export default function DownloadApp() {
             </Button>
 
             <p className="text-sm text-muted-foreground text-center">
-              <strong>Latest version:</strong> v1.0.2 with mobile authentication support
+              <strong>Latest version:</strong> v1.0.3 optimized release build (faster installation)
             </p>
           </div>
 
