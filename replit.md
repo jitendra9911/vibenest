@@ -135,3 +135,29 @@ Preferred communication style: Simple, everyday language.
 - connect-pg-simple for PostgreSQL session storage
 - express-session for session middleware
 - memoizee for function result caching (OIDC config)
+
+## Recent Changes
+
+### v1.0.7 (October 20, 2025) - Mobile Authentication Fix
+**Critical Fix:** Resolved mobile authentication issue where OAuth login was not working in the Android app.
+
+**Root Cause:** AndroidManifest.xml intent filter was incomplete - only specified `android:scheme="vibenest"` without host and path, causing Chrome to not recognize `vibenest://auth/callback` URLs as valid deep links.
+
+**Changes:**
+1. **AndroidManifest.xml** - Updated intent filter to include full deep link specification:
+   ```xml
+   <data 
+       android:scheme="vibenest" 
+       android:host="auth" 
+       android:pathPrefix="/callback" />
+   ```
+
+2. **DeepLinkHandler.tsx** - Added comprehensive logging and user feedback:
+   - Console logs for all deep link events and token exchange steps
+   - Toast notifications for login success/failure
+   - Error handling with descriptive messages
+   - Visibility into token extraction and session creation
+
+**Impact:** Mobile users can now successfully log in via system browser OAuth flow. The app properly catches the deep link callback, exchanges the token for a session, and updates the UI to show the authenticated state.
+
+**Testing:** Backend testing confirmed token generation, exchange, and session creation working correctly. The issue was isolated to the Android deep link configuration.
