@@ -1,10 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { BookOpen, CheckCircle2, Sparkles, ArrowRight } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 
 export default function Landing() {
-  const handleLogin = () => {
-    window.location.href = "/api/login";
+  const handleLogin = async () => {
+    if (Capacitor.isNativePlatform()) {
+      // On mobile, open OAuth in system browser
+      const loginUrl = `${window.location.origin}/api/login?mobile=true`;
+      await Browser.open({ url: loginUrl });
+    } else {
+      // On web, use regular redirect
+      window.location.href = "/api/login";
+    }
   };
 
   return (
