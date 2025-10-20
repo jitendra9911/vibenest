@@ -10,6 +10,46 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   await setupAuth(app);
 
   // Auth routes
+  app.post('/api/auth/mobile-exchange', async (req: any, res) => {
+    try {
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ message: "Token required" });
+      }
+      
+      // Get token data from database
+      const tokenData = await storage.getMobileAuthToken(token);
+      
+      if (!tokenData) {
+        return res.status(401).json({ message: "Invalid or expired token" });
+      }
+      
+      // Delete the token (one-time use)
+      await storage.deleteMobileAuthToken(token);
+      
+      // Create session with user data
+      const user = {
+        claims: tokenData.claims,
+        access_token: tokenData.accessToken,
+        refresh_token: tokenData.refreshToken,
+        expires_at: tokenData.claims?.exp,
+      };
+      
+      // Log in the user (creates session)
+      req.logIn(user, (err: any) => {
+        if (err) {
+          console.error("Error logging in user:", err);
+          return res.status(500).json({ message: "Failed to create session" });
+        }
+        res.json({ success: true });
+      });
+    } catch (error) {
+      console.error("Error exchanging token:", error);
+      res.status(500).json({ message: "Failed to exchange token" });
+    }
+  });
+
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

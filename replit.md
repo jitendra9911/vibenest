@@ -8,6 +8,8 @@ The platform emphasizes a clean, minimal UI with smooth transitions and a modern
 
 **Cross-Platform:** VibeNest is available as a web application and can be built as a native Android app using Capacitor.
 
+**Mobile Authentication:** The Android app uses a token-based authentication system that opens OAuth in the system browser and seamlessly exchanges temporary tokens for persistent sessions.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

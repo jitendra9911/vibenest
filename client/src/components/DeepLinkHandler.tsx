@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
-import { queryClient } from '@/lib/queryClient';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 
 export function DeepLinkHandler() {
   useEffect(() => {
@@ -21,8 +21,21 @@ export function DeepLinkHandler() {
           // Close the system browser
           await Browser.close();
           
-          // Invalidate auth query to trigger re-fetch
-          queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+          // Extract token from URL
+          const urlObj = new URL(url);
+          const token = urlObj.searchParams.get('token');
+          
+          if (token) {
+            try {
+              // Exchange token for session
+              await apiRequest('POST', '/api/auth/mobile-exchange', { token });
+              
+              // Invalidate auth query to trigger re-fetch and update UI
+              queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+            } catch (error) {
+              console.error('Failed to exchange token:', error);
+            }
+          }
         }
       });
     };

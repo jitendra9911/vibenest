@@ -116,12 +116,12 @@ export async function setupAuth(app: Express) {
   app.get("/api/callback", (req, res, next) => {
     const isMobile = (req.session as any).isMobileLogin;
     
-    passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any) => {
+    passport.authenticate(`replitauth:${req.hostname}`, async (err: any, user: any) => {
       if (err || !user) {
         return res.redirect("/api/login");
       }
       
-      req.logIn(user, (loginErr) => {
+      req.logIn(user, async (loginErr) => {
         if (loginErr) {
           return res.redirect("/api/login");
         }
@@ -131,8 +131,22 @@ export async function setupAuth(app: Express) {
         
         // Redirect based on platform
         if (isMobile) {
-          // Deep link back to mobile app
-          res.redirect("vibenest://auth/callback");
+          // Generate token for mobile app
+          const crypto = await import('crypto');
+          const token = crypto.randomBytes(32).toString('hex');
+          
+          // Store token in database with user session data
+          await storage.createMobileAuthToken({
+            token,
+            userId: user.claims.sub,
+            claims: user.claims,
+            accessToken: user.access_token,
+            refreshToken: user.refresh_token,
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+          });
+          
+          // Deep link back to mobile app with token
+          res.redirect(`vibenest://auth/callback?token=${token}`);
         } else {
           // Regular web redirect
           res.redirect("/");

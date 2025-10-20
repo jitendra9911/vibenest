@@ -22,6 +22,19 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+// Mobile auth tokens - Temporary tokens for mobile OAuth flow
+export const mobileAuthTokens = pgTable("mobile_auth_tokens", {
+  token: varchar("token").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  claims: jsonb("claims").notNull(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("mobile_auth_tokens_expires_at").on(table.expiresAt),
+]);
+
 // User storage table - Required for Replit Auth with bio extension
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

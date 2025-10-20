@@ -5,6 +5,7 @@ import {
   comments,
   follows,
   bookmarks,
+  mobileAuthTokens,
   type User,
   type UpsertUser,
   type Story,
@@ -60,6 +61,11 @@ export interface IStorage {
   unbookmarkStory(userId: string, storyId: string): Promise<void>;
   isStoryBookmarked(userId: string, storyId: string): Promise<boolean>;
   getBookmarkedStories(userId: string): Promise<StoryWithAuthor[]>;
+  
+  // Mobile auth token operations
+  createMobileAuthToken(data: { token: string; userId: string; claims: any; accessToken: string; refreshToken?: string; expiresAt: Date }): Promise<void>;
+  getMobileAuthToken(token: string): Promise<{ userId: string; claims: any; accessToken: string; refreshToken?: string | null } | undefined>;
+  deleteMobileAuthToken(token: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -430,6 +436,34 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(bookmarks.createdAt));
     
     return result;
+  }
+
+  // Mobile auth token operations
+  async createMobileAuthToken(data: { token: string; userId: string; claims: any; accessToken: string; refreshToken?: string; expiresAt: Date }): Promise<void> {
+    await db.insert(mobileAuthTokens).values(data);
+  }
+
+  async getMobileAuthToken(token: string): Promise<{ userId: string; claims: any; accessToken: string; refreshToken?: string | null } | undefined> {
+    const [result] = await db
+      .select()
+      .from(mobileAuthTokens)
+      .where(eq(mobileAuthTokens.token, token))
+      .limit(1);
+    
+    if (!result || result.expiresAt < new Date()) {
+      return undefined;
+    }
+    
+    return {
+      userId: result.userId,
+      claims: result.claims,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    };
+  }
+
+  async deleteMobileAuthToken(token: string): Promise<void> {
+    await db.delete(mobileAuthTokens).where(eq(mobileAuthTokens.token, token));
   }
 }
 
