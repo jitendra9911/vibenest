@@ -102,6 +102,11 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
+    // Store mobile flag in session for callback
+    if (req.query.mobile === 'true') {
+      (req.session as any).isMobileLogin = true;
+    }
+    
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
@@ -109,9 +114,30 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
+    const isMobile = (req.session as any).isMobileLogin;
+    
+    passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any) => {
+      if (err || !user) {
+        return res.redirect("/api/login");
+      }
+      
+      req.logIn(user, (loginErr) => {
+        if (loginErr) {
+          return res.redirect("/api/login");
+        }
+        
+        // Clear mobile flag from session
+        delete (req.session as any).isMobileLogin;
+        
+        // Redirect based on platform
+        if (isMobile) {
+          // Deep link back to mobile app
+          res.redirect("vibenest://auth/callback");
+        } else {
+          // Regular web redirect
+          res.redirect("/");
+        }
+      });
     })(req, res, next);
   });
 
