@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
+import { DeepLinkHandler } from "@/components/DeepLinkHandler";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
@@ -45,6 +46,7 @@ function App() {
       <ThemeProvider>
         <MusicPlayerProvider>
           <TooltipProvider>
+            <DeepLinkHandler />
             <Toaster />
             <Router />
           </TooltipProvider>
