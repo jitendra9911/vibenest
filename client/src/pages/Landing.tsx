@@ -7,8 +7,9 @@ import { Browser } from "@capacitor/browser";
 export default function Landing() {
   const handleLogin = async () => {
     if (Capacitor.isNativePlatform()) {
-      // On mobile, open OAuth in system browser
-      const loginUrl = `${window.location.origin}/api/login?mobile=true`;
+      // On mobile, open OAuth in system browser with production backend URL
+      const backendUrl = "https://vibenest.replit.app";
+      const loginUrl = `${backendUrl}/api/login?mobile=true`;
       await Browser.open({ url: loginUrl });
     } else {
       // On web, use regular redirect
